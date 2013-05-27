@@ -7,7 +7,7 @@ import java.util.Comparator;
 
 import javax.swing.DefaultListModel;
 
-class Listener
+public class Listener
 {
 	private DefaultListModel	listNames	= null;//Список имен файлов
 	private DefaultListModel	listPaths	= null;//Список пути к файлу
