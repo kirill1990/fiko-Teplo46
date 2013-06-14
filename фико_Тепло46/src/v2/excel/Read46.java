@@ -6,6 +6,7 @@ package v2.excel;
 import java.io.File;
 import java.io.IOException;
 import java.sql.Connection;
+import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -13,7 +14,11 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Locale;
 
+import javax.swing.DefaultListModel;
 import javax.swing.JOptionPane;
+import javax.swing.SwingWorker;
+
+import v2.Teplo;
 
 import jxl.Sheet;
 import jxl.Workbook;
@@ -26,29 +31,54 @@ import jxl.read.biff.BiffException;
  * @author kirill
  * 
  */
-public class Read46 extends Thread {
+public class Read46 extends SwingWorker<Object, Object> {
 
     /**
      * Подключение к базе данных
      */
     private Connection conn;
+    
+    /**
+     * Список путей к документам
+     */
+    private DefaultListModel listPaths;
 
     /**
-     * Обрабатываем документ Excel
+     * Конструктор. Устанавливает связь с базой данных и забирает считываемый
+     * документ.
+     * 
+     * @param listPaths
+     * 
+     * @param conn
+     *            - Связь с базой данной
+     * @param excel
+     *            - Документ(Excel файл) с которого необходимо считать данные
+     * @throws ClassNotFoundException
+     * @throws SQLException
      */
-    private File excel;
+    public Read46(DefaultListModel listPaths)
+	    throws ClassNotFoundException, SQLException {
+	Class.forName("org.sqlite.JDBC");
+	conn = DriverManager.getConnection("jdbc:sqlite:" + Teplo.PATHTODB);
 
-    public Read46(Connection conn, File excel) {
-	this.conn = conn;
-	this.excel = excel;
-
-	this.setName(excel.getName());
+	this.listPaths = listPaths;
     }
 
-    public void run() {
+    /**
+     * Запуск обработки потока в фоне
+     */
+    @Override
+    protected Object doInBackground() throws Exception {
+
 	try {
 	    // no comments
-	    this.action();
+
+	    for (int i = 0; i < this.listPaths.size(); i++) {
+		this.action(new File((String) this.listPaths.get(i)));
+		this.setProgress((i%2==0)?1:2);
+	    }
+	    this.setProgress(3);
+
 	} catch (BiffException e) {
 	    e.printStackTrace();
 	} catch (IOException e) {
@@ -56,16 +86,20 @@ public class Read46 extends Thread {
 	} catch (SQLException e) {
 	    e.printStackTrace();
 	}
+	return null;
     }
 
     /**
-     * Вся веселуха тут, ВПЕРЕД!
+     * Вся веселуха тут, ПОЕХАЛИ!
      * 
+     * @param excel
+     *            - Обрабатываем документ Excel
      * @throws BiffException
      * @throws IOException
      * @throws SQLException
      */
-    private void action() throws BiffException, IOException, SQLException {
+    private void action(File excel) throws BiffException, IOException,
+	    SQLException {
 
 	/**
 	 * настройка Excel файла - убирает вывод ошибок
@@ -89,14 +123,16 @@ public class Read46 extends Thread {
 	Sheet sheet_para = workbook.getSheet("Отпуск ТЭ в паре");
 
 	/**
-	 * Проверяет наличие листов в excel документе
+	 * Проверяет наличие листов в excel документе<br>
+	 * Если нет хотя бы одного листа, прекрашает дальнейшее выполнение
+	 * метода
 	 */
 	if (sheet_title == null || sheet_gor == null || sheet_para == null) {
 	    /**
 	     * Один лист не найден, выдаётся сообщение ошибки и прекращает
 	     * работу с этим документом
 	     */
-	    JOptionPane.showInputDialog("Ошибка в файле: "
+	    JOptionPane.showMessageDialog(null,"Ошибка в файле: "
 		    + excel.getAbsoluteFile());
 	    return;
 	}
@@ -159,7 +195,7 @@ public class Read46 extends Thread {
 	    boolean isRecord = true;
 
 	    /**
-	     * Проверяем наличия у этой организации записи с ГОДом и МЕСЯЦем
+	     * Проверяет наличия у этой организации записи с ГОДом и МЕСЯЦем
 	     * считавемого документа
 	     */
 	    ResultSet title = stat
@@ -172,7 +208,7 @@ public class Read46 extends Thread {
 		 * Такая запись существует
 		 */
 
-		// сбрасываем разрешение на запись(не портим данные)
+		// сбрасывает разрешение на запись(не портим данные)
 		isRecord = false;
 
 		/**
@@ -220,7 +256,7 @@ public class Read46 extends Thread {
 	    title.close();
 
 	    /**
-	     * Если не было команды пропустить - записываем данные в базу
+	     * Если не было команды пропустить - записывает данные в базу
 	     */
 	    if (isRecord)
 		this.recOtpusk(content, id, year, month);
@@ -345,7 +381,7 @@ public class Read46 extends Thread {
     }
 
     /**
-     * Удаление доумента из базы(данные удаляются из title и otpusk)
+     * Удаление документа из базы(данные удаляются из title и otpusk)
      * 
      * @param titleId
      *            - id удаляемого документа в title
@@ -371,6 +407,7 @@ public class Read46 extends Thread {
 	ArrayList<String> content = new ArrayList<String>(203);
 
 	for (int i = 12; i < 42; i++) {
+	    // пропуск строки
 	    if (i != 26) {
 		// Код строки
 		content.add(sheet.getCell(4, i - 1).getContents());
@@ -402,9 +439,8 @@ public class Read46 extends Thread {
      */
     private String getZero(String _text) {
 	if (_text == "")
-	    return "0,000";
+	    return "0";
 
 	return _text;
     }
-
 }
