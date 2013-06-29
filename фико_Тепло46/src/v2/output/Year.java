@@ -185,9 +185,12 @@ public class Year {
 
 		if (row != old_row)
 		    row++;
+
 		sheet.addCell(new Label(0, row, district, font.tahomaTitle));
+
 		for (int i = 1; i < 53; i++)
 		    sheet.addCell(new Label(i, row, "", font.tahomaTitle));
+
 		old_row = row;
 
 		/**
@@ -216,8 +219,7 @@ public class Year {
 
 		    while (title.next()) {
 			/**
-			 * Найден(ы) документ(ы), ставим знак "+" в месяце, за
-			 * который был подан документ
+			 * Найден(ы) документ(ы), запись данных в Excel
 			 */
 			for (int i = 0; i < months.length; i++) {
 			    if (title.getString("year").equals(
@@ -326,20 +328,22 @@ public class Year {
 		     * нарастающей за все месяца
 		     */
 		    int erro_column = months.length * 4;
-		    
-		    /** 
+
+		    /**
 		     * Так сойдет
 		     */
 		    int formula_num = 1;
 		    String f = "OR(";
 
-		    f += toColumnExcel(erro_column - 4 + formula_num) + (row + 1)
-			    + " <> " + toColumnExcel(erro_column - 3 + formula_num)
+		    f += toColumnExcel(erro_column - 4 + formula_num)
+			    + (row + 1) + " <> "
+			    + toColumnExcel(erro_column - 3 + formula_num)
 			    + (row + 1);
 		    f += ",";
 		    formula_num = formula_num + 2;
-		    f += toColumnExcel(erro_column - 4 + formula_num) + (row + 1)
-			    + " <> " + toColumnExcel(erro_column - 3 + formula_num)
+		    f += toColumnExcel(erro_column - 4 + formula_num)
+			    + (row + 1) + " <> "
+			    + toColumnExcel(erro_column - 3 + formula_num)
 			    + (row + 1);
 		    f += ")";
 
@@ -362,7 +366,9 @@ public class Year {
 
     /**
      * Приведение текстового значение к значению с точкой
-     * @param value - текстовое представление числа с точкой
+     * 
+     * @param value
+     *            - текстовое представление числа с точкой
      * @return - число с точкой
      */
     private Double GetCoor(String value) {
